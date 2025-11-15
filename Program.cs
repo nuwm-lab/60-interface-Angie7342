@@ -14,22 +14,37 @@ namespace MatricesDemo
   // Додано абстрактний базовий клас з одним спільним Random
   public abstract class Matrix : IMatrix
   {
-    protected static readonly Random _rnd = new Random();
+    // Використовуємо спільний Random (Runtime-dependent); у .NET 6+ можна використовувати Random.Shared
+    protected static readonly Random _rnd = Random.Shared;
+
     public abstract void InputFromConsole();
     public abstract void FillRandom(int minValue = -50, int maxValue = 50);
     public abstract int MinElement();
     public abstract void Print();
+
+    // Допоміжний метод для консольного вводу цілих чисел
+    protected int ReadInt(string prompt)
+    {
+      while (true)
+      {
+        Console.Write(prompt);
+        string? s = Console.ReadLine();
+        if (int.TryParse(s, out int val))
+          return val;
+        Console.WriteLine("Невірне значення. Спробуйте знову.");
+      }
+    }
   }
 
   public class TwoDMatrix : Matrix
   {
     private int[,] _a;
-    private readonly int Rows = 3;
-    private readonly int Cols = 3;
+    private readonly int _rows = 3;
+    private readonly int _cols = 3;
 
     public TwoDMatrix()
     {
-      _a = new int[Rows, Cols];
+      _a = new int[_rows, _cols];
       Console.WriteLine("TwoDMatrix: default constructor called");
     }
 
@@ -39,11 +54,6 @@ namespace MatricesDemo
       Console.WriteLine($"TwoDMatrix: constructed (fillRandom={fillRandom})");
     }
 
-    ~TwoDMatrix()
-    {
-      Console.WriteLine("TwoDMatrix: finalizer called");
-    }
-
     public override void InputFromConsole()
     {
       Console.WriteLine("Введіть елементи двовимірної матриці 3x3 (цілі числа):");
@@ -51,23 +61,14 @@ namespace MatricesDemo
       {
         for (int j = 0; j < _a.GetLength(1); j++)
         {
-          while (true)
-          {
-            Console.Write($"A[{i},{j}] = ");
-            string? s = Console.ReadLine();
-            if (int.TryParse(s, out int val))
-            {
-              _a[i, j] = val;
-              break;
-            }
-            Console.WriteLine("Невірне значення. Спробуйте знову.");
-          }
+          _a[i, j] = ReadInt($"A[{i},{j}] = ");
         }
       }
     }
 
     public override void FillRandom(int minValue = -50, int maxValue = 50)
     {
+      if (minValue > maxValue) throw new ArgumentException("minValue має бути <= maxValue.");
       for (int i = 0; i < _a.GetLength(0); i++)
         for (int j = 0; j < _a.GetLength(1); j++)
           _a[i, j] = _rnd.Next(minValue, maxValue + 1);
@@ -100,13 +101,13 @@ namespace MatricesDemo
   public class ThreeDMatrix : Matrix
   {
     private int[,,] _b;
-    private readonly int X = 3;
-    private readonly int Y = 3;
-    private readonly int Z = 3;
+    private readonly int _x = 3;
+    private readonly int _y = 3;
+    private readonly int _z = 3;
 
     public ThreeDMatrix()
     {
-      _b = new int[X, Y, Z];
+      _b = new int[_x, _y, _z];
       Console.WriteLine("ThreeDMatrix: default constructor called");
     }
 
@@ -114,11 +115,6 @@ namespace MatricesDemo
     {
       if (fillRandom) FillRandom();
       Console.WriteLine($"ThreeDMatrix: constructed (fillRandom={fillRandom})");
-    }
-
-    ~ThreeDMatrix()
-    {
-      Console.WriteLine("ThreeDMatrix: finalizer called");
     }
 
     public override void InputFromConsole()
@@ -131,17 +127,7 @@ namespace MatricesDemo
         {
           for (int j = 0; j < _b.GetLength(1); j++)
           {
-            while (true)
-            {
-              Console.Write($"B[{i},{j},{k}] = ");
-              string? s = Console.ReadLine();
-              if (int.TryParse(s, out int val))
-              {
-                _b[i, j, k] = val;
-                break;
-              }
-              Console.WriteLine("Невірне значення. Спробуйте знову.");
-            }
+            _b[i, j, k] = ReadInt($"B[{i},{j},{k}] = ");
           }
         }
       }
@@ -150,6 +136,7 @@ namespace MatricesDemo
 
     public override void FillRandom(int minValue = -50, int maxValue = 50)
     {
+      if (minValue > maxValue) throw new ArgumentException("minValue має бути <= maxValue.");
       for (int k = 0; k < _b.GetLength(2); k++)
         for (int i = 0; i < _b.GetLength(0); i++)
           for (int j = 0; j < _b.GetLength(1); j++)
@@ -186,7 +173,7 @@ namespace MatricesDemo
     }
   }
 
-  class Program
+  static class Program
   {
     static void Main(string[] args)
     {
@@ -215,13 +202,7 @@ namespace MatricesDemo
   im3i.Print();
   Console.WriteLine($"Мінімум через інтерфейс (3D): {im3i.MinElement()}");
 
-  // Демонстрація фіналайзерів (не гарантовано у продакшені, для demo викликаємо GC)
-  im2 = null;
-  im3i = null;
-  Console.WriteLine("Викликаємо GC.Collect() для демонстрації фіналайзерів...");
-  GC.Collect();
-  GC.WaitForPendingFinalizers();
-  Console.WriteLine();
+      Console.WriteLine();
 
       Console.WriteLine("Приклад вводу з клавіатури для двовимірної матриці:");
       var user2 = new TwoDMatrix();
